@@ -344,11 +344,16 @@ These fields come from a **full historical simulation**:
 # ------------------------------
 # Display Table
 # ------------------------------
+
 # Rank the results
 ranked = ranked.reset_index(drop=True)
 ranked.insert(0, "Rank", range(1, len(ranked) + 1))
 
-# ---- CSS-based styling (no matplotlib needed) ----
+# Ensure heatmap columns are numeric (critical!)
+for col in ["20d_dist_%", "55d_dist_%"]:
+    ranked[col] = pd.to_numeric(ranked[col], errors="coerce")
+
+# ---- CSS-based styling (safe on Streamlit Cloud) ----
 
 def color_system1(val):
     if val is True:
@@ -358,26 +363,26 @@ def color_system1(val):
     return ""
 
 def heatmap_color(v):
-    """Manually create a green/red gradient without matplotlib."""
+    """Green/red intensity based on distance percentage."""
     if pd.isna(v):
         return ""
+    try:
+        v = float(v)
+    except:
+        return ""
     
-    # Normalize around zero
-    if v > 0:
-        # Green scale
-        intensity = min(int(v * 5), 100)
-        return f"background-color: rgba(0, 180, 0, {intensity/100});"
+    if v >= 0:
+        intensity = min(v * 4, 1)  # scale 0–1
+        return f"background-color: rgba(0, 180, 0, {intensity});"
     else:
-        # Red scale
-        intensity = min(int(abs(v) * 5), 100)
-        return f"background-color: rgba(200, 0, 0, {intensity/100});"
+        intensity = min(abs(v) * 4, 1)
+        return f"background-color: rgba(200, 0, 0, {intensity});"
 
 def apply_heatmap(df, cols):
     styles = pd.DataFrame("", index=df.index, columns=df.columns)
     for c in cols:
         styles[c] = df[c].apply(heatmap_color)
     return styles
-
 
 heatmap_cols = ["20d_dist_%", "55d_dist_%"]
 base_styles = apply_heatmap(ranked, heatmap_cols)
