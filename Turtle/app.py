@@ -344,29 +344,53 @@ These fields come from a **full historical simulation**:
 # ------------------------------
 # Display Table
 # ------------------------------
-# Rank the results nicely
+# Rank the results
 ranked = ranked.reset_index(drop=True)
 ranked.insert(0, "Rank", range(1, len(ranked) + 1))
 
-# Color for system1_allowed
+# ---- CSS-based styling (no matplotlib needed) ----
+
 def color_system1(val):
     if val is True:
-        return "color: white; background-color: lightgreen; font-weight: bold;"
+        return "color: white; background-color: #3CB371; font-weight: bold;"  # green
     elif val is False:
-        return "color: white; background-color: darkred; font-weight: bold;"
+        return "color: white; background-color: #8B0000; font-weight: bold;"  # red
     return ""
 
-# Styled DataFrame
+def heatmap_color(v):
+    """Manually create a green/red gradient without matplotlib."""
+    if pd.isna(v):
+        return ""
+    
+    # Normalize around zero
+    if v > 0:
+        # Green scale
+        intensity = min(int(v * 5), 100)
+        return f"background-color: rgba(0, 180, 0, {intensity/100});"
+    else:
+        # Red scale
+        intensity = min(int(abs(v) * 5), 100)
+        return f"background-color: rgba(200, 0, 0, {intensity/100});"
+
+def apply_heatmap(df, cols):
+    styles = pd.DataFrame("", index=df.index, columns=df.columns)
+    for c in cols:
+        styles[c] = df[c].apply(heatmap_color)
+    return styles
+
+
+heatmap_cols = ["20d_dist_%", "55d_dist_%"]
+base_styles = apply_heatmap(ranked, heatmap_cols)
+
 styled = (
     ranked.style
         .map(color_system1, subset=["system1_allowed"])
-        .background_gradient(subset=["20d_dist_%"], cmap="RdYlGn_r")
-        .background_gradient(subset=["55d_dist_%"], cmap="RdYlGn_r")
+        .apply(lambda _: base_styles, axis=None)
 )
 
 st.subheader("Top Results")
 
-# IMPORTANT: st.write() supports Styler, st.dataframe() does NOT
 st.write(
-    styled.hide(axis="index")  # hides the index safely
+    styled.hide(axis="index")
 )
+
