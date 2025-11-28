@@ -356,6 +356,7 @@ def color_system1(val):
         return "color: white; background-color: darkred; font-weight: bold;"
     return ""
 
+# Styled DataFrame
 styled = (
     ranked.style
         .map(color_system1, subset=["system1_allowed"])
@@ -363,10 +364,9 @@ styled = (
         .background_gradient(subset=["55d_dist_%"], cmap="RdYlGn_r")
 )
 
-st.subheader("Top Results ")
-st.dataframe(
-    styled,
-    hide_index=True,
-    width='stretch',
-    height=440
+st.subheader("Top Results")
+
+# IMPORTANT: st.write() supports Styler, st.dataframe() does NOT
+st.write(
+    styled.hide(axis="index")  # hides the index safely
 )
